@@ -3,133 +3,251 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Sistem Terminal</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #0d47a1 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .login-wrapper { width: 100%; max-width: 420px; padding: 20px; }
-    .login-header { text-align: center; margin-bottom: 30px; color: white; }
-    .login-header .icon { font-size: 60px; margin-bottom: 10px; }
-    .login-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
-    .login-header p { font-size: 13px; opacity: 0.8; }
-    .login-card { background: white; border-radius: 16px; padding: 35px 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .login-card h2 { font-size: 18px; color: #1a237e; margin-bottom: 25px; font-weight: 600; }
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 7px; }
-    .form-group input { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; outline: none; }
-    .form-group input:focus { border-color: #1a237e; }
-    .btn-login { width: 100%; padding: 13px; background: linear-gradient(135deg, #1a237e, #0d47a1); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.3s; margin-top: 5px; }
-    .btn-login:hover { opacity: 0.9; }
-    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
-    .alert { padding: 10px 15px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; }
-    .alert-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-    .alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-    .footer-text { text-align: center; color: white; font-size: 12px; margin-top: 20px; opacity: 0.7; }
-  </style>
+  <title>Dashboard - Sistem Terminal</title>
+  <?!= include('styles') ?>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 <body>
-<div class="login-wrapper">
-  <div class="login-header">
-    <div class="icon">🚌</div>
-    <h1>Sistem Pendataan Terminal</h1>
-    <p>BPSPP Wilayah V — Purbalingga & Banjarnegara</p>
-  </div>
-  <div class="login-card">
-  <h2>Silakan Login</h2>
-  <div class="alert alert-error" id="alertError"></div>
-  <div class="alert alert-success" id="alertSuccess"></div>
-  <div class="form-group">
-    <label>Username</label>
-    <input type="text" id="username" placeholder="Masukkan username" />
-  </div>
-  <div class="form-group">
-    <label>Password</label>
-    <input type="password" id="password" placeholder="Masukkan password" onkeypress="if(event.key==='Enter') doLogin()" />
-  </div>
-  <button class="btn-login" id="btnLogin" onclick="doLogin()">Masuk</button>
+  <div class="mobile-toggle" onclick="toggleSidebar()">☰</div>
+<div class="wrapper">
+  <?!= include('sidebar') ?>
+  <div class="main-content">
+    <div class="page-header">
+      <h1>📊 Dashboard</h1>
+      <p id="tglHariIni"></p>
+    </div>
 
-  <div style="display:flex;align-items:center;gap:10px;margin-top:18px;">
-    <div style="flex:1;height:1px;background:#e0e0e0;"></div>
-    <span style="font-size:12px;color:#aaa;">atau</span>
-    <div style="flex:1;height:1px;background:#e0e0e0;"></div>
-  </div>
+    <!-- Filter -->
+    <div class="card">
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Terminal</label>
+          <select id="filterTerminal" onchange="loadDashboard()">
+            <option value="Semua">Semua Terminal</option>
+            <option value="PURBALINGGA">Purbalingga</option>
+            <option value="BANJARNEGARA">Banjarnegara</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Layanan</label>
+          <select id="filterLayanan" onchange="loadDashboard()">
+            <option value="Semua">AKAP & AKDP</option>
+            <option value="AKAP">AKAP</option>
+            <option value="AKDP">AKDP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bulan</label>
+          <select id="filterBulan" onchange="loadDashboard()">
+            <option value="1">Januari</option><option value="2">Februari</option>
+            <option value="3">Maret</option><option value="4">April</option>
+            <option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option>
+            <option value="9">September</option><option value="10">Oktober</option>
+            <option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tahun</label>
+          <select id="filterTahun" onchange="loadDashboard()"></select>
+        </div>
+      </div>
+    </div>
 
-  <button onclick="masukSebagaiTamu()" style="width:100%;padding:11px;margin-top:12px;background:white;color:#1a237e;border:2px solid #1a237e;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='white'">
-    👁️ Lihat sebagai Tamu
-  </button>
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">🚌</div><div class="stat-value" id="statBusMsk">-</div><div class="stat-label">Total Bus Masuk</div></div>
+      <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-value" id="statPnp">-</div><div class="stat-label">Total Penumpang</div></div>
+      <div class="stat-card orange"><div class="stat-icon">📊</div><div class="stat-value" id="statLoadFactor">-</div><div class="stat-label">Rata-rata Load Factor</div></div>
+      <div class="stat-card purple"><div class="stat-icon">🏢</div><div class="stat-value" id="statPO">-</div><div class="stat-label">Total PO</div></div>
+      <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-value" id="statLaik">-</div><div class="stat-label">Laik Jalan</div></div>
+      <div class="stat-card red"><div class="stat-icon">❌</div><div class="stat-value" id="statTidakLaik">-</div><div class="stat-label">Tidak Laik</div></div>
+      <div class="stat-card teal"><div class="stat-icon">🧍</div><div class="stat-value" id="statPengunjung">-</div><div class="stat-label">Total Pengunjung</div></div>
+    </div>
+
+    <!-- Charts row 1 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+      <div class="card">
+        <div class="card-title">📈 Grafik Bus Masuk Harian</div>
+        <canvas id="chartBus" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">👥 Grafik Penumpang Harian</div>
+        <canvas id="chartPnp" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart pengunjung -->
+    <div class="card">
+      <div class="card-title">🧍 Grafik Pengunjung Harian</div>
+      <canvas id="chartPengunjung" height="100"></canvas>
+    </div>
+
+    <!-- Tabel Rekap Bulanan -->
+    <div class="card">
+      <div class="card-title">📋 Rekap Bulanan</div>
+      <div class="table-wrapper">
+        <div class="loading" id="loadingRekap"><span class="spinner"></span> Memuat data...</div>
+        <table id="tabelRekap" style="display:none;">
+          <thead>
+            <tr>
+              <th>Tanggal</th><th>Terminal</th><th>Layanan</th><th>Jml PO</th>
+              <th>Bus Msk</th><th>Bus Klr</th><th>BK</th><th>BS</th><th>BB</th><th>MPU</th>
+              <th>Seat</th><th>Penumpang</th><th>Load Factor</th>
+              <th>Pnp Naik</th><th>Pnp Turun</th><th>Laik</th><th>Tdk Laik</th>
+            </tr>
+          </thead>
+          <tbody id="bodyRekap"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </div>
-  <div class="footer-text">Balai Pengelola Sarana Prasarana Perhubungan Wilayah V</div>
+<div id="loader">
+  <div class="loader-spin"></div>
 </div>
 <script>
-  var SURL = '';
-  google.script.run.withSuccessHandler(function(url) {
-    SURL = url;
-  }).getScriptUrl();
+  // Token dan session dari server
+  var _token = '<?= token ?>';
+  var _session = {};
+  try { _session = JSON.parse('<?= session ?>'); } catch(e) {}
 
-  function doLogin() {
-    var username = document.getElementById('username').value.trim();
-    var password = document.getElementById('password').value.trim();
-    var btn = document.getElementById('btnLogin');
-    if (!username || !password) { showAlert('error', 'Username dan password wajib diisi!'); return; }
-    btn.disabled = true;
-    btn.textContent = 'Memproses...';
+  setActiveMenu('menuDashboard');
+
+  var now = new Date();
+  document.getElementById('tglHariIni').textContent = now.toLocaleDateString('id-ID', {
+    weekday:'long', year:'numeric', month:'long', day:'numeric'
+  });
+
+  var tahunSelect = document.getElementById('filterTahun');
+  for (var y = now.getFullYear(); y >= 2024; y--) {
+    var opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    tahunSelect.appendChild(opt);
+  }
+  document.getElementById('filterBulan').value = now.getMonth() + 1;
+  document.getElementById('filterTahun').value = now.getFullYear();
+
+  var chartBus = null, chartPnp = null, chartPengunjung = null;
+
+  function loadDashboard() {
+    var terminal = document.getElementById('filterTerminal').value;
+    var layanan = document.getElementById('filterLayanan').value;
+    var bulan = document.getElementById('filterBulan').value;
+    var tahun = document.getElementById('filterTahun').value;
+
+    document.getElementById('loadingRekap').style.display = 'block';
+    document.getElementById('tabelRekap').style.display = 'none';
+
     google.script.run
-      .withSuccessHandler(function(result) {
-  if (result.success) {
-    showAlert('success', 'Berhasil! Mengalihkan...');
-    // Gunakan result.homePage untuk redirect
-    window.location.href = SURL + '?page=' + result.homePage + '&token=' + result.token;
-  } else {
-    showAlert('error', result.message);
-    btn.disabled = false;
-    btn.textContent = 'Masuk';
-  }
-})
+      .withSuccessHandler(function(data) { renderDashboard(data); })
       .withFailureHandler(function(err) {
-        showAlert('error', 'Terjadi kesalahan: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = 'Masuk';
+        document.getElementById('loadingRekap').style.display = 'none';
+        console.error('Error rekap:', err.message);
       })
-      .login(username, password);
+      .getRekapBulanan(terminal, layanan, bulan, tahun);
+
+    google.script.run
+      .withSuccessHandler(function(data) { renderPengunjung(data, terminal); })
+      .withFailureHandler(function(err) { console.error('Error pengunjung:', err.message); })
+      .getRekapPengunjungDashboard(terminal, bulan, tahun);
   }
 
-  function showAlert(type, msg) {
-    document.getElementById('alertError').style.display = 'none';
-    document.getElementById('alertSuccess').style.display = 'none';
-    var el = document.getElementById('alert' + (type === 'error' ? 'Error' : 'Success'));
-    el.textContent = msg;
-    el.style.display = 'block';
+  function renderDashboard(data) {
+    var totalBus=0, totalPnp=0, totalSeat=0, totalLaik=0, totalTidakLaik=0, totalPO=0;
+    var perTanggal = {};
+
+    data.forEach(function(r) {
+      totalBus += Number(r.bus_msk)||0;
+      totalPnp += Number(r.penumpang)||0;
+      totalSeat += Number(r.seat)||0;
+      totalLaik += Number(r.laik_jalan)||0;
+      totalTidakLaik += Number(r.tidak_laik)||0;
+      totalPO = Math.max(totalPO, Number(r.jml_po)||0);
+      if (!perTanggal[r.tanggal]) perTanggal[r.tanggal] = {bus:0, pnp:0};
+      perTanggal[r.tanggal].bus += Number(r.bus_msk)||0;
+      perTanggal[r.tanggal].pnp += Number(r.penumpang)||0;
+    });
+
+    var avgLF = totalSeat > 0 ? ((totalPnp/totalSeat)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('statBusMsk').textContent = totalBus.toLocaleString('id-ID');
+    document.getElementById('statPnp').textContent = totalPnp.toLocaleString('id-ID');
+    document.getElementById('statLoadFactor').textContent = avgLF;
+    document.getElementById('statPO').textContent = totalPO;
+    document.getElementById('statLaik').textContent = totalLaik.toLocaleString('id-ID');
+    document.getElementById('statTidakLaik').textContent = totalTidakLaik.toLocaleString('id-ID');
+
+    var sortedTgl = Object.keys(perTanggal).sort(function(a,b) {
+      var da=a.split('/'), db=b.split('/');
+      return new Date(da[2],da[1]-1,da[0]) - new Date(db[2],db[1]-1,db[0]);
+    });
+
+    var labelGrafik = document.getElementById('filterTerminal').value === 'Semua' ? 'Gabungan' : document.getElementById('filterTerminal').value;
+
+    if (chartBus) chartBus.destroy();
+    chartBus = new Chart(document.getElementById('chartBus'), {
+      type: 'bar',
+      data: { labels: sortedTgl, datasets: [{ label: labelGrafik, data: sortedTgl.map(function(t){return perTanggal[t].bus;}), backgroundColor: 'rgba(26,35,126,0.7)', borderRadius: 4 }] },
+      options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    if (chartPnp) chartPnp.destroy();
+    chartPnp = new Chart(document.getElementById('chartPnp'), {
+      type: 'line',
+      data: { labels: sortedTgl, datasets: [{ label: labelGrafik, data: sortedTgl.map(function(t){return perTanggal[t].pnp;}), borderColor: '#2e7d32', backgroundColor: 'rgba(46,125,50,0.1)', tension: 0.4, fill: true }] },
+      options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    var tbody = document.getElementById('bodyRekap');
+    tbody.innerHTML = '';
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:#777;padding:20px;">Belum ada data</td></tr>';
+    } else {
+      data.forEach(function(r) {
+        tbody.innerHTML += '<tr>' +
+          '<td>'+r.tanggal+'</td><td>'+r.terminal+'</td>' +
+          '<td><span class="badge badge-'+r.layanan.toLowerCase()+'">'+r.layanan+'</span></td>' +
+          '<td>'+r.jml_po+'</td><td>'+r.bus_msk+'</td><td>'+r.bus_klr+'</td>' +
+          '<td>'+r.BK+'</td><td>'+r.BS+'</td><td>'+r.BB+'</td><td>'+r.MPU+'</td>' +
+          '<td>'+r.seat+'</td><td>'+r.penumpang+'</td><td>'+r.load_factor+'%</td>' +
+          '<td>'+r.pnp_naik+'</td><td>'+r.pnp_turun+'</td>' +
+          '<td>'+r.laik_jalan+'</td><td>'+r.tidak_laik+'</td>' +
+          '</tr>';
+      });
+    }
+    document.getElementById('loadingRekap').style.display = 'none';
+    document.getElementById('tabelRekap').style.display = 'table';
   }
-  function masukSebagaiTamu() {
-  var btn = event.target;
-  btn.disabled = true;
-  btn.textContent = 'Memproses...';
-  google.script.run
-    .withSuccessHandler(function(result) {
-      if (result.success) {
-        function go() {
-          if (SURL) {
-            window.location.href = SURL + '?page=dashboard&token=' + result.token;
-          } else {
-            setTimeout(go, 100);
-          }
-        }
-        go();
-      }
-    })
-    .withFailureHandler(function(err) {
-      btn.disabled = false;
-      btn.textContent = '👁️ Lihat sebagai Tamu';
-    })
-    .loginTamu();
-}
+
+  function renderPengunjung(data, terminal) {
+    var totalPengunjung = 0;
+    var perTanggal = {};
+    data.forEach(function(r) {
+      totalPengunjung += Number(r.jumlah_pengunjung)||0;
+      if (!perTanggal[r.tanggal]) perTanggal[r.tanggal] = 0;
+      perTanggal[r.tanggal] += Number(r.jumlah_pengunjung)||0;
+    });
+    document.getElementById('statPengunjung').textContent = totalPengunjung.toLocaleString('id-ID');
+
+    var sortedTgl = Object.keys(perTanggal).sort(function(a,b) {
+      var da=a.split('/'), db=b.split('/');
+      return new Date(da[2],da[1]-1,da[0]) - new Date(db[2],db[1]-1,db[0]);
+    });
+
+    var labelGrafik = terminal === 'Semua' ? 'Gabungan' : terminal;
+    if (chartPengunjung) chartPengunjung.destroy();
+    chartPengunjung = new Chart(document.getElementById('chartPengunjung'), {
+      type: 'bar',
+      data: {
+        labels: sortedTgl,
+        datasets: [{ label: 'Pengunjung - '+labelGrafik, data: sortedTgl.map(function(t){return perTanggal[t];}), backgroundColor: 'rgba(0,105,92,0.7)', borderRadius: 4 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+
+  loadDashboard();
 </script>
 </body>
 </html>
