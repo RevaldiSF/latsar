@@ -1,0 +1,149 @@
+<div class="mobile-toggle" onclick="toggleSidebar()">☰</div>
+
+<div class="sidebar" id="mainSidebar">
+  <div class="sidebar-header">
+    <div class="logo">🚌</div>
+    <h3>Sistem Terminal Perhubungan</h3>
+    <p>BPSPP Wilayah V</p>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-name" id="sidebarNama">-</div>
+    <div class="user-terminal" id="sidebarTerminal">-</div>
+  </div>
+  <nav class="sidebar-menu">
+    <div class="menu-label">Menu Utama</div>
+    <a class="menu-item" id="menuDashboard" onclick="navigateTo('dashboard')">
+      <span class="icon">📊</span><span>Dashboard</span>
+    </a>
+    <div class="menu-label">Input Data</div>
+    <a class="menu-item" id="menuPurbalingga" onclick="navigateTo('input_purbalingga')">
+      <span class="icon">🏢</span><span>Purbalingga</span>
+    </a>
+    <a class="menu-item" id="menuBanjarnegara" onclick="navigateTo('input_banjarnegara')">
+      <span class="icon">🏢</span><span>Banjarnegara</span>
+    </a>
+    <div class="menu-label">Laporan</div>
+    <a class="menu-item" id="menuLaporan" onclick="navigateTo('laporan')">
+      <span class="icon">📄</span><span>Laporan</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- Overlay untuk mobile -->
+<div id="sidebarOverlay" onclick="toggleSidebar()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99;"></div>
+
+<script>
+  // Ambil token dari URL parameter
+function getUrlParam(name) {
+  var url = window.location.href;
+  var regex = new RegExp('[?&]' + name + '=([^&#]*)');
+  var results = regex.exec(url);
+  return results ? decodeURIComponent(results[1]) : '';
+}
+
+var _token = getUrlParam('token');
+var _SURL = '';
+var _session = {};
+var _nama = '-';
+var _terminal = '-';
+var _role = '';
+
+// Ambil session dari server pakai token yang ada di URL
+google.script.run.withSuccessHandler(function(url) {
+  _SURL = url;
+}).getScriptUrl();
+
+if (_token) {
+  google.script.run.withSuccessHandler(function(session) {
+    if (session) {
+      _session = session;
+      _nama = session.nama || '-';
+      _terminal = session.terminal || '-';
+      _role = session.role || '';
+      initSidebar();
+    }
+  }).validateSession(_token);
+}
+  
+
+  if (document.getElementById('sidebarNama')) {
+    document.getElementById('sidebarNama').textContent = _nama;
+  }
+  if (document.getElementById('sidebarTerminal')) {
+    document.getElementById('sidebarTerminal').textContent = _terminal;
+  }
+
+  // Sembunyikan menu sesuai role
+// Sembunyikan menu sesuai role
+if (_role === 'tamu') {
+  // Tamu: cuma dashboard
+  var elPbg2 = document.getElementById('menuPurbalingga');
+  var elBjn2 = document.getElementById('menuBanjarnegara');
+  var elLap = document.getElementById('menuLaporan');
+  var inputLabel = document.querySelectorAll('.menu-label');
+  if (elPbg2) elPbg2.style.display = 'none';
+  if (elBjn2) elBjn2.style.display = 'none';
+  if (elLap) elLap.style.display = 'none';
+  // Sembunyiin label "Input Data" dan "Laporan"
+  inputLabel.forEach(function(el) {
+    if (el.textContent.trim() === 'INPUT DATA' || el.textContent.trim() === 'LAPORAN') {
+      el.style.display = 'none';
+    }
+  });
+
+} else if (_role === 'petugas') {
+  // Petugas: dashboard + terminal sesuai + laporan
+  // Sembunyiin terminal yang bukan miliknya
+  if (_terminal === 'PURBALINGGA') {
+    var elBjn = document.getElementById('menuBanjarnegara');
+    if (elBjn) elBjn.style.display = 'none';
+  } else if (_terminal === 'BANJARNEGARA') {
+    var elPbg = document.getElementById('menuPurbalingga');
+    if (elPbg) elPbg.style.display = 'none';
+  }
+}
+
+  function setActiveMenu(id) {
+    document.querySelectorAll('.menu-item').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    var el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  function navigateTo(page) {
+    function go() {
+      if (_SURL) {
+        window.top.location.href = _SURL + '?page=' + page + '&token=' + _token;
+      } else {
+        setTimeout(go, 100);
+      }
+    }
+    go();
+  }
+
+  function doLogout() {
+    if (!confirm('Yakin mau logout?')) return;
+    google.script.run.withSuccessHandler(function() {
+      function go() {
+        if (_SURL) {
+          window.top.location.href = _SURL + '?page=login';
+        } else {
+          setTimeout(go, 100);
+        }
+      }
+      go();
+    }).logout(_token);
+  }
+
+  function toggleSidebar() {
+  var sidebar = document.getElementById('mainSidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  if (!sidebar || !overlay) return;
+  sidebar.classList.toggle('active');
+  overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+}
+</script>
