@@ -1,370 +1,204 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Laporan - Sistem Terminal</title>
-  <?!= include('styles') ?>
-</head>
-<body>
-
-<div class="wrapper">
-  <?!= include('sidebar') ?>
-
-  <div class="main-content">
-    <div class="page-header">
-      <h1>📄 Cetak Laporan Bulanan</h1>
-      <p>Rekapitulasi pencatatan arus AKAP / AKDP</p>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Filter Laporan</div>
-      <div class="filter-bar">
-        <div class="form-group">
-          <label>Terminal</label>
-          <select id="filterTerminal">
-            <option value="PURBALINGGA">Purbalingga</option>
-            <option value="BANJARNEGARA">Banjarnegara</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Layanan</label>
-          <select id="filterLayanan">
-            <option value="AKAP">AKAP</option>
-            <option value="AKDP">AKDP</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Bulan</label>
-          <select id="filterBulan">
-            <option value="1">Januari</option>
-            <option value="2">Februari</option>
-            <option value="3">Maret</option>
-            <option value="4">April</option>
-            <option value="5">Mei</option>
-            <option value="6">Juni</option>
-            <option value="7">Juli</option>
-            <option value="8">Agustus</option>
-            <option value="9">September</option>
-            <option value="10">Oktober</option>
-            <option value="11">November</option>
-            <option value="12">Desember</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Tahun</label>
-          <select id="filterTahun"></select>
-        </div>
-        <div class="form-group">
-          <label>&nbsp;</label>
-          <button class="btn btn-primary" onclick="previewLaporan()">🔍 Preview</button>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
-        <button class="btn btn-success" onclick="cetakPDF()">🖨️ Cetak PDF</button>
-        <button class="btn btn-warning" onclick="cetakExcelBiasa()">📊 Download Excel</button>
-        <button class="btn btn-primary" id="btnCetakSemua" onclick="cetakExcelLengkap()" style="background:#6a1b9a;">
-          📦 Cetak Keseluruhan (Excel)
-        </button>
-      </div>
-      <p style="font-size:12px;color:#777;margin-top:8px;">
-        ⚡ "Cetak Keseluruhan" akan menghasilkan 1 file Excel berisi semua sheet (Rekap AKAP, Rekap AKDP, Rekap Pengunjung, dan data harian per hari)
-      </p>
-    </div>
-
-    <div class="alert alert-info" id="alertInfo" style="display:none;"></div>
-    <div class="alert alert-error" id="alertError" style="display:none;"></div>
-    <div class="alert alert-success" id="alertSuccess" style="display:none;"></div>
-
-    <div class="card" id="previewArea" style="display:none;">
-      <div id="isiLaporan"></div>
-    </div>
-
-  </div>
-</div>
-
 <style>
-  .laporan-wrapper { font-family: Calibri, 'Segoe UI', sans-serif; font-size: 11px; color: #000; }
-  .laporan-judul { text-align: center; font-weight: bold; font-size: 13px; text-transform: uppercase; margin-bottom: 8px; }
-  .laporan-info { margin-bottom: 10px; }
-  .laporan-info table, .laporan-info td { border: none !important; background: none !important; padding: 2px 5px; text-align: left; }
-  .laporan-info tr:hover td { background: none !important; }
-  .label-layanan { position: absolute; right: 0; top: 0; border: 2px solid #000; padding: 5px 15px; font-weight: bold; font-size: 13px; }
-  .laporan-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  .laporan-table th, .laporan-table td { border: 1px solid #000; padding: 4px 6px; text-align: center; background: none; color: #000; }
-  .laporan-table th { background: #d9d9d9 !important; font-weight: bold; }
-  .laporan-table tr:hover td { background: none !important; }
-  .laporan-table .total-row td { font-weight: bold; background: #f0f0f0 !important; }
-  .ttd-area {
-    margin-top: 20px;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+  .wrapper { display: flex; min-height: 100vh; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 220px;
+    background: linear-gradient(180deg, #1a237e 0%, #283593 100%);
+    color: white;
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
   }
-  .ttd-inner {
-    text-align: center;
-    font-size: 11px;
-    line-height: 1.8;
-    min-width: 250px;
+  .sidebar-header { padding: 18px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+  .sidebar-header .logo { font-size: 35px; margin-bottom: 5px; }
+  .sidebar-header h3 { font-size: 12px; font-weight: 700; line-height: 1.4; }
+  .sidebar-header p { font-size: 11px; opacity: 0.7; margin-top: 3px; }
+  .sidebar-user { padding: 10px 15px; background: rgba(255,255,255,0.1); margin: 8px 10px; border-radius: 8px; font-size: 12px; }
+  .sidebar-user .user-name { font-weight: 600; font-size: 13px; }
+  .sidebar-user .user-terminal { opacity: 0.8; margin-top: 2px; }
+  .sidebar-menu { flex: 1; padding: 8px 0; overflow-y: auto; }
+  .menu-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; padding: 8px 18px 4px; }
+  .menu-item { display: flex; align-items: center; gap: 10px; padding: 12px 18px; cursor: pointer; transition: background 0.2s; font-size: 13px; text-decoration: none; color: white; opacity: 0.85; }
+  .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.15); opacity: 1; }
+  .menu-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .btn-logout { width: 100%; padding: 9px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+  .btn-logout:hover { background: rgba(255,0,0,0.3); }
+
+  /* ===== MAIN CONTENT ===== */
+  .main-content { margin-left: 220px; flex: 1; padding: 22px; min-width: 0; }
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 20px; font-weight: 700; color: #1a237e; }
+  .page-header p { font-size: 13px; color: #777; margin-top: 3px; }
+
+  /* ===== MOBILE TOGGLE ===== */
+  .mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 200;
+    background: #1a237e;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
-  @media print {
-    .sidebar, .page-header, .card:first-child { display: none !important; }
-    #alertInfo, #alertError, #alertSuccess { display: none !important; }
-    .main-content { margin-left: 0 !important; padding: 10px !important; }
-    .card { box-shadow: none !important; border: none !important; padding: 0 !important; }
-    body { background: white !important; }
+
+  /* ===== STAT CARDS ===== */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #1a237e; transition: transform 0.2s; }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card.green { border-left-color: #2e7d32; }
+  .stat-card.orange { border-left-color: #e65100; }
+  .stat-card.red { border-left-color: #c62828; }
+  .stat-card.purple { border-left-color: #6a1b9a; }
+  .stat-card.teal { border-left-color: #00695c; }
+  .stat-card .stat-icon { font-size: 24px; margin-bottom: 8px; }
+  .stat-card .stat-value { font-size: 24px; font-weight: 700; color: #1a237e; }
+  .stat-card.green .stat-value { color: #2e7d32; }
+  .stat-card.orange .stat-value { color: #e65100; }
+  .stat-card.red .stat-value { color: #c62828; }
+  .stat-card.purple .stat-value { color: #6a1b9a; }
+  .stat-card.teal .stat-value { color: #00695c; }
+  .stat-card .stat-label { font-size: 11px; color: #777; margin-top: 3px; }
+
+  /* ===== CARD ===== */
+  .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; color: #1a237e; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #f0f2f5; }
+
+  /* ===== FORM ===== */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: #555; }
+  .form-group input, .form-group select { padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s; background: white; width: 100%; }
+  .form-group input:focus, .form-group select:focus { border-color: #1a237e; }
+  .form-group input[readonly] { background: #f5f5f5; color: #777; }
+
+  /* ===== BUTTONS ===== */
+  .btn { padding: 9px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: #1a237e; color: white; }
+  .btn-success { background: #2e7d32; color: white; }
+  .btn-warning { background: #e65100; color: white; }
+  .btn-danger { background: #c62828; color: white; }
+  .btn-secondary { background: #757575; color: white; }
+  .btn-purple { background: #6a1b9a; color: white; }
+
+  /* ===== TABLE ===== */
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
+  table th { background: #1a237e; color: white; padding: 9px 10px; text-align: left; font-weight: 600; font-size: 11px; white-space: nowrap; }
+  table td { padding: 8px 10px; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
+  table tr:hover td { background: #f8f9ff; }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+  .filter-bar .form-group { min-width: 120px; }
+
+  /* ===== ALERT ===== */
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .alert-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+  .alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+  .alert-info { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+
+  /* ===== BADGE ===== */
+  .badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-akap { background: #e3f2fd; color: #1565c0; }
+  .badge-akdp { background: #e8f5e9; color: #2e7d32; }
+
+  /* ===== LOADING ===== */
+  .loading { text-align: center; padding: 25px; color: #777; font-size: 13px; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #e0e0e0; border-top-color: #1a237e; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== RESPONSIVE DESKTOP ===== */
+  @media (min-width: 769px) {
+    .mobile-toggle { display: none !important; }
+    .sidebar { transform: translateX(0) !important; }
+  }
+
+  /* ===== RESPONSIVE MOBILE ===== */
+  @media (max-width: 768px) {
+    .mobile-toggle { display: block; }
+
+    .sidebar {
+      transform: translateX(-100%);
+      width: 240px;
+      z-index: 101;
+    }
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .main-content {
+      margin-left: 0;
+      padding: 12px;
+      padding-top: 55px; /* biar konten gak ketutup toggle */
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat-card {
+      padding: 12px;
+    }
+
+    .stat-card .stat-value { font-size: 20px; }
+
+    .form-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .filter-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filter-bar .form-group {
+      min-width: unset;
+      width: 100%;
+    }
+
+    /* Chart responsif */
+    canvas { max-width: 100%; }
+
+    /* Grid chart 2 kolom jadi 1 kolom di mobile */
+    div[style*="grid-template-columns:1fr 1fr"] {
+      display: block !important;
+    }
+
+    div[style*="grid-template-columns:1fr 1fr"] > .card {
+      margin-bottom: 16px;
+    }
+
+    /* Tombol wrap */
+    div[style*="display:flex;gap:10px"] {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .page-header h1 { font-size: 16px; }
   }
 </style>
-
-<script>
-  var _token = '<?= token ?>';
-  var _session = {};
-  try { _session = JSON.parse('<?= session ?>'); } catch(e) {}
-
-  setActiveMenu('menuLaporan');
-
-  setActiveMenu('laporan');
-
-  var now = new Date();
-  var tahunSelect = document.getElementById('filterTahun');
-  for (var y = now.getFullYear(); y >= 2024; y--) {
-    var opt = document.createElement('option');
-    opt.value = y; opt.textContent = y;
-    tahunSelect.appendChild(opt);
-  }
-  document.getElementById('filterBulan').value = now.getMonth() + 1;
-  document.getElementById('filterTahun').value = now.getFullYear();
-
-  var BULAN_NAMA = ['','Januari','Februari','Maret','April','Mei','Juni',
-    'Juli','Agustus','September','Oktober','November','Desember'];
-  var dataLaporan = [];
-
-  function showAlert(type, msg) {
-    ['alertInfo','alertError','alertSuccess'].forEach(function(id) {
-      document.getElementById(id).style.display = 'none';
-    });
-    var id = type === 'error' ? 'alertError' : type === 'success' ? 'alertSuccess' : 'alertInfo';
-    var el = document.getElementById(id);
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-
-  function previewLaporan() {
-    var terminal = document.getElementById('filterTerminal').value;
-    var layanan = document.getElementById('filterLayanan').value;
-    var bulan = document.getElementById('filterBulan').value;
-    var tahun = document.getElementById('filterTahun').value;
-
-    document.getElementById('isiLaporan').innerHTML = '<div class="loading"><span class="spinner"></span> Memuat data...</div>';
-    document.getElementById('previewArea').style.display = 'block';
-
-    google.script.run
-      .withSuccessHandler(function(data) {
-        dataLaporan = data;
-        renderLaporan(data, terminal, layanan, bulan, tahun);
-      })
-      .withFailureHandler(function(err) {
-        document.getElementById('isiLaporan').innerHTML = '<p style="color:red;">Error: ' + err.message + '</p>';
-      })
-      .getRekapBulanan(terminal, layanan, bulan, tahun);
-  }
-
-function renderLaporan(data, terminal, layanan, bulan, tahun) {
-  var isAKDP = layanan === 'AKDP';
-  var bulanNama = BULAN_NAMA[parseInt(bulan)];
-
-  var tot = { jml_po:0, bus_msk:0, bus_klr:0, BK:0, BS:0, BB:0, MPU:0, seat:0, penumpang:0, pnp_naik:0, pnp_turun:0, laik:0, tidak_laik:0 };
-
-  data.forEach(function(r) {
-    tot.jml_po = Math.max(tot.jml_po, Number(r.jml_po)||0);
-    tot.bus_msk += Number(r.bus_msk)||0;
-    tot.bus_klr += Number(r.bus_klr)||0;
-    tot.BK += Number(r.BK)||0;
-    tot.BS += Number(r.BS)||0;
-    tot.BB += Number(r.BB)||0;
-    tot.MPU += Number(r.MPU)||0;
-    tot.seat += Number(r.seat)||0;
-    tot.penumpang += Number(r.penumpang)||0;
-    tot.pnp_naik += Number(r.pnp_naik)||0;
-    tot.pnp_turun += Number(r.pnp_turun)||0;
-    tot.laik += Number(r.laik_jalan)||0;
-    tot.tidak_laik += Number(r.tidak_laik)||0;
-  });
-
-  var totalLF = tot.seat > 0 ? ((tot.penumpang/tot.seat)*100).toFixed(2)+'%' : '0%';
-  var kolomMPU = isAKDP ? '<th rowspan="2">MPU</th>' : '';
-  var kolomMPUTot = isAKDP ? '<td>' + tot.MPU + '</td>' : '';
-
-  var rows = '';
-  data.forEach(function(r, i) {
-    var lf = Number(r.seat) > 0 ? ((Number(r.penumpang)/Number(r.seat))*100).toFixed(2)+'%' : '0%';
-    rows += '<tr>' +
-      '<td>' + (i+1) + '</td><td>' + r.tanggal + '</td><td>' + r.jml_po + '</td>' +
-      '<td>' + r.bus_msk + '</td><td>' + r.bus_klr + '</td>' +
-      '<td>' + r.BK + '</td><td>' + r.BS + '</td><td>' + r.BB + '</td>' +
-      (isAKDP ? '<td>' + r.MPU + '</td>' : '') +
-      '<td>' + r.seat + '</td><td>' + r.penumpang + '</td><td>' + lf + '</td>' +
-      '<td>' + r.pnp_turun + '</td><td>' + r.pnp_naik + '</td>' +
-      '<td>' + r.laik_jalan + '</td><td>' + r.tidak_laik + '</td><td></td>' +
-      '</tr>';
-  });
-
-  var html =
-    '<div class="laporan-wrapper" id="printArea">' +
-
-      // Judul tengah
-      '<div style="text-align:center;font-weight:bold;font-size:13px;text-transform:uppercase;line-height:1.6;margin-bottom:8px;">' +
-        'REKAPITULASI PENCATATAN ARUS ' + layanan + '<br>' +
-        'TERMINAL ' + terminal.toUpperCase() +
-      '</div>' +
-
-      // Info rata kiri
-      '<table style="font-size:11px;margin-bottom:8px;">' +
-        '<tr>' +
-          '<td style="border:none;background:none;padding:1px 0;font-weight:bold;width:80px;">BULAN</td>' +
-          '<td style="border:none;background:none;padding:1px 5px;">: ' + bulanNama.toUpperCase() + '</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td style="border:none;background:none;padding:1px 0;font-weight:bold;">TERMINAL</td>' +
-          '<td style="border:none;background:none;padding:1px 5px;">: ' + terminal.toUpperCase() + '</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td style="border:none;background:none;padding:1px 0;font-weight:bold;">KAB / KOTA</td>' +
-          '<td style="border:none;background:none;padding:1px 5px;">: ' + terminal.toUpperCase() + '</td>' +
-        '</tr>' +
-      '</table>' +
-
-      // Kotak AKAP/AKDP di atas kolom KETERANGAN (pojok kanan, sebelum tabel)
-      '<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">' +
-        '<div style="border:2px solid #000;padding:3px 12px;font-weight:bold;font-size:12px;display:inline-block;">' +
-          layanan +
-        '</div>' +
-      '</div>' +
-
-      // Tabel
-      '<table class="laporan-table"><thead>' +
-        '<tr>' +
-          '<th rowspan="2">NO</th>' +
-          '<th rowspan="2">TANGGAL</th>' +
-          '<th rowspan="2">JUMLAH PO</th>' +
-          '<th colspan="2">KENDARAAN</th>' +
-          '<th colspan="' + (isAKDP ? 4 : 3) + '">JENIS BUS</th>' +
-          '<th rowspan="2">JUMLAH SEAT TERSEDIA</th>' +
-          '<th rowspan="2">JUMLAH PNP</th>' +
-          '<th rowspan="2">LOAD FACTOR (%)</th>' +
-          '<th colspan="2">PENUMPANG</th>' +
-          '<th colspan="2">KONDISI KENDARAAN</th>' +
-          '<th rowspan="2">KETERANGAN</th>' +
-        '</tr>' +
-        '<tr>' +
-          '<th>MASUK</th><th>KELUAR</th>' +
-          '<th>BK</th><th>BS</th><th>BB</th>' +
-          kolomMPU +
-          '<th>TURUN</th><th>NAIK</th>' +
-          '<th>LAIK JALAN</th><th>TDK LAIK JALAN</th>' +
-        '</tr>' +
-      '</thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="20" style="text-align:center;">Belum ada data</td></tr>') + '</tbody>' +
-      '<tfoot><tr class="total-row">' +
-        '<td colspan="2">JUMLAH :</td>' +
-        '<td>' + tot.jml_po + '</td>' +
-        '<td>' + tot.bus_msk + '</td><td>' + tot.bus_klr + '</td>' +
-        '<td>' + tot.BK + '</td><td>' + tot.BS + '</td><td>' + tot.BB + '</td>' +
-        kolomMPUTot +
-        '<td>' + tot.seat + '</td><td>' + tot.penumpang + '</td><td>' + totalLF + '</td>' +
-        '<td>' + tot.pnp_turun + '</td><td>' + tot.pnp_naik + '</td>' +
-        '<td>' + tot.laik + '</td><td>' + tot.tidak_laik + '</td>' +
-        '<td></td>' +
-      '</tr></tfoot></table>' +
-
-      // TTD
-      '<div class="ttd-area">' +
-        '<div class="ttd-inner">' +
-          '<p>Mengetahui,</p>' +
-          '<p>Plt. Kepala Seksi Angkutan BPSPP Wilayah V /</p>' +
-          '<p>Kepala Seksi Lalu Lintas BPSPP Wilayah V</p>' +
-          '<br><br><br>' +
-          '<p><strong>BAMBANG SETIARTO, S.Hut</strong></p>' +
-          '<p>Penata Tk. I</p>' +
-          '<p>NIP. 19720717 199803 1 006</p>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-
-  document.getElementById('isiLaporan').innerHTML = html;
-}
-
-  function cetakPDF() {
-    if (!document.getElementById('printArea')) {
-      showAlert('error', 'Preview dulu sebelum cetak!'); return;
-    }
-    window.print();
-  }
-
-  function cetakExcelBiasa() {
-    if (dataLaporan.length === 0) {
-      showAlert('error', 'Preview dulu sebelum download!'); return;
-    }
-    var terminal = document.getElementById('filterTerminal').value;
-    var layanan = document.getElementById('filterLayanan').value;
-    var bulan = document.getElementById('filterBulan').value;
-    var tahun = document.getElementById('filterTahun').value;
-    var isAKDP = layanan === 'AKDP';
-    var bulanNama = BULAN_NAMA[parseInt(bulan)];
-
-    var header = ['NO','TANGGAL','JUMLAH PO','MASUK','KELUAR','BK','BS','BB'];
-    if (isAKDP) header.push('MPU');
-    header = header.concat(['SEAT','PENUMPANG','LOAD FACTOR','TURUN','NAIK','LAIK JALAN','TDK LAIK','KETERANGAN']);
-
-    var csv = header.join(',') + '\n';
-    dataLaporan.forEach(function(r, i) {
-      var lf = Number(r.seat) > 0 ? ((Number(r.penumpang)/Number(r.seat))*100).toFixed(2)+'%' : '0%';
-      var row = [i+1, r.tanggal, r.jml_po, r.bus_msk, r.bus_klr, r.BK, r.BS, r.BB];
-      if (isAKDP) row.push(r.MPU);
-      row = row.concat([r.seat, r.penumpang, lf, r.pnp_turun, r.pnp_naik, r.laik_jalan, r.tidak_laik, '']);
-      csv += row.join(',') + '\n';
-    });
-
-    var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'Rekap_' + layanan + '_' + terminal + '_' + bulanNama + '_' + tahun + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function cetakExcelLengkap() {
-    var terminal = document.getElementById('filterTerminal').value;
-    var bulan = document.getElementById('filterBulan').value;
-    var tahun = document.getElementById('filterTahun').value;
-    var bulanNama = BULAN_NAMA[parseInt(bulan)];
-    var btn = document.getElementById('btnCetakSemua');
-
-    btn.disabled = true;
-    btn.textContent = '⏳ Generating...';
-    showAlert('info', '⏳ Sedang membuat file Excel lengkap... Mohon tunggu, proses ini memakan waktu 30-60 detik.');
-
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (result.success) {
-          showAlert('success', '✅ File siap! Klik link berikut untuk download: <a href="' + result.url + '" target="_blank" style="color:#1a237e;font-weight:bold;">Download ' + result.nama + '.xlsx</a>');
-          document.getElementById('alertSuccess').innerHTML = '✅ File siap! <a href="' + result.url + '" target="_blank" style="color:#1a237e;font-weight:bold;">Klik di sini untuk download ' + result.nama + '.xlsx</a>';
-          document.getElementById('alertSuccess').style.display = 'block';
-        } else {
-          showAlert('error', 'Gagal membuat file: ' + result.message);
-        }
-        btn.disabled = false;
-        btn.textContent = '📦 Cetak Keseluruhan (Excel)';
-      })
-      .withFailureHandler(function(err) {
-        showAlert('error', 'Error: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '📦 Cetak Keseluruhan (Excel)';
-      })
-      .generateExcelLengkap(terminal, bulan, tahun);
-  }
-</script>
-
-</body>
-</html>
